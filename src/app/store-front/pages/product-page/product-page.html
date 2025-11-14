@@ -4,9 +4,10 @@
     </div>
 }
 @if ( productResource.hasValue() ) {
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-        <div class="mr-5">
-            <product-carousel [images]="productResource.value().images" />
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start min-h-screen">
+        <div class="flex justify-center items-center p-4">
+            <product-carousel class="max-w-full max-h-[90vh] object-contain" 
+            [images]="productResource.value().images" />
         </div>
         
         <div>
