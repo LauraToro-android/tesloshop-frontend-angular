@@ -17,7 +17,15 @@
   </svg>
   <input type="email" placeholder="Email" formControlName="email" />
 </label>
-<div class="validator-hint hidden">Enter valid Email</div>
+@if(loginForm.controls.email.touched && loginForm.controls.email.invalid){
+  <div role="alert" class="alert alert-error animate-fadeIn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>Debe introducir un email valido</span>
+  </div>
+}
 <label class="input validator">
   <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
     <g

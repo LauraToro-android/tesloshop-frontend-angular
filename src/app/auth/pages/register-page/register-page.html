@@ -1,1 +1,149 @@
-<p>register-page works!</p>,
+<form class="flex flex-col gap-2"
+   [formGroup]="registerForm"
+   (ngSubmit)="register()">
+<label class="input validator">
+  <svg class="h-[1em] opacity-50" style="transform: scale(1.5);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd">
+      <path d="M3.944 11.79a.5.5 0 0 1 .141-.277L14.163 1.435a.5.5 0 0 1 .707 0l3.89 3.89a.5.5 0 0 1 0 .706L8.68 16.11a.5.5 0 0 1-.277.14l-4.595.706a.5.5 0 0 1-.57-.57zm.964.314l-.577 3.76l3.759-.578l9.609-9.608l-3.183-3.182z"/>
+      <path d="m15.472 8.173l-3.537-3.53l.707-.708l3.536 3.53z"/>
+    </g>
+  </svg>
+  <input formControlName="fullName" type="text" placeholder="Nombre">
+</label>
+
+@if (registerForm.controls.fullName.touched && registerForm.controls.fullName.invalid) {
+        <div role="alert" class="alert alert-error animate-fadeIn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>Debe tener al menos 3 caracteres</span>
+  </div>
+    }
+<label class="input validator">
+  <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <g
+      stroke-linejoin="round"
+      stroke-linecap="round"
+      stroke-width="2.5"
+      fill="none"
+      stroke="currentColor"
+    >
+      <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+    </g>
+  </svg>
+  <input type="email" placeholder="Email" formControlName="email" />
+</label>
+@if(registerForm.get('email')?.touched && registerForm.get('email')?.hasError('email')){
+    <div role="alert" class="alert alert-error animate-fadeIn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>El email no es valido</span>
+  </div>
+}
+@if(registerForm.controls.email.touched && registerForm.controls.email.invalid){
+    <div role="alert" class="alert alert-error animate-fadeIn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>Debe introducir un email valido</span>
+  </div>
+}
+<label class="input validator">
+  <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <g
+      stroke-linejoin="round"
+      stroke-linecap="round"
+      stroke-width="2.5"
+      fill="none"
+      stroke="currentColor"
+    >
+      <path
+        d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"
+      ></path>
+      <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
+    </g>
+  </svg>
+  <input type="password" placeholder="Contraseña" formControlName="password"/>
+</label>
+@if (registerForm.get('password')?.touched && registerForm.get('password')?.hasError('minlength')) {
+  <div role="alert" class="alert alert-error animate-fadeIn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>Debe tener mínimo 6 caracteres</span>
+  </div>
+}
+@if(registerForm.get('password')?.touched && registerForm.get('password')?.hasError('pattern')){
+    <div role="alert" class="alert alert-error animate-fadeIn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>Debe contener mayúscula, minúscula y número</span>
+  </div>
+}
+
+<label class="input validator">
+  <svg class="h-[1em] opacity-50 text-accent" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <g
+      stroke-linejoin="round"
+      stroke-linecap="round"
+      stroke-width="2.5"
+      fill="none"
+      stroke="currentColor"
+    >
+      <path
+        d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"
+      ></path>
+      <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
+    </g>
+  </svg>
+
+  <input
+    type="password"
+    placeholder="Confirmar contraseña"
+    formControlName="confirmPassword"
+  />
+</label>
+@if (
+  registerForm.get('confirmPassword')?.touched &&
+  registerForm.errors?.['passwordsNotMatching']
+) {
+  <div role="alert" class="alert alert-error animate-fadeIn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>Las contraseñas no coinciden</span>
+  </div>
+}
+@if (registerForm.get('confirmPassword')?.touched 
+     && registerForm.get('confirmPassword')?.hasError('required')) {
+
+  <div role="alert" class="alert alert-error animate-fadeIn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>Debe confirmar contraseña</span>
+  </div>
+}
+<button type="submit" class="btn btn-secondary">Crear cuenta</button>
+@if (errorMessage) {
+    <div role="alert" class="alert alert-error animate-fadeIn">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>{{errorMessage}}</span>
+  </div>
+}
+
+</form>
+
