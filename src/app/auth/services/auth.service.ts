@@ -19,6 +19,8 @@ export class AuthService {
   authStatus = computed(() => this._authStatus());
   user = computed(() => this._user());
   token = computed(() => this._token());
+  // si el usuario contiene el rol admin devuelve true, caso contrario false
+  isAdmin = computed(() => this._user()?.roles.includes('admin') ?? false);
 
   // Observable para que los guards puedan suscribirse
   authStatus$ = toObservable(this._authStatus);
@@ -49,7 +51,7 @@ export class AuthService {
       headers: { Authorization: `Bearer ${token}` }
     })
     .pipe(
-      tap(resp => this.handleAuthSucess(resp)), // ← usa tu método real
+      tap(resp => this.handleAuthSucess(resp)), 
       map(() => true),
       catchError(() => {
         this._authStatus.set('not-authenticated');
