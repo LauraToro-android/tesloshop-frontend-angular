@@ -1,9 +1,8 @@
 import { HttpClient } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
 import { Gender, Product, ProductsResponse } from "../interfaces/products-response.interface";
-import { count, Observable, of, tap } from "rxjs";
+import { catchError, forkJoin, map, Observable, of, switchMap, tap } from "rxjs";
 import { environment } from "../../../environments/environment.development";
-import { User } from "../../auth/interfaces/user.interface";
 
 const baseUrl = environment.baseUrl;
 
@@ -81,15 +80,35 @@ export class ProductsService {
         .pipe(tap((product) => this.productCache.set(id, product)));
     }
 
-    updateProduct(id: string, productLike: Partial<Product>): Observable<Product>{
-       return this.http.patch<Product>(`${baseUrl}/products/${id}`, productLike)
-        .pipe(
-            tap((product) => this.updateProductCache(product)));
+    updateProduct(id: string, productLike: Partial<Product>, imageFileList?: FileList): Observable<Product>{
+       const currentImages = productLike.images ?? [];
+       return this.uploadImages(imageFileList) 
+       .pipe(
+        map((imageNames) => ({
+            ...productLike,
+            images: [... currentImages, ... imageNames],
+        })),
+        switchMap((updateProduct) => 
+            this.http.patch<Product>(`${baseUrl}/products/${id}`,updateProduct)
+        ),
+        tap((product) => this.updateProductCache(product))
+      );
+    
+        //return this.http.patch<Product>(`${baseUrl}/products/${id}`, productLike)
+        //.pipe(tap((product) => this.updateProductCache(product)));
     }
     
-    createProduct(productLike: Partial<Product>): Observable<Product> {
-        return this.http.post<Product>(`${baseUrl}/products`, productLike)
-           .pipe(tap((product) => this.updateProductCache(product)));
+    createProduct(productLike: Partial<Product>, imageFileList?: FileList): Observable<Product> {
+        return this.uploadImages(imageFileList).pipe(
+    map((imageNames) => ({
+      ...productLike,
+      images: [...imageNames]  
+    })),
+    switchMap((newProduct) =>
+      this.http.post<Product>(`${baseUrl}/products`, newProduct)
+    ),
+    tap((product) => this.updateProductCache(product))
+  );
     }
 
     updateProductCache(product: Product){
@@ -106,4 +125,65 @@ export class ProductsService {
         });
         console.log('Cache actualizado');
     }
+
+    uploadImages(images?: FileList): Observable<string[]> {
+        if( !images ) return of ([]); 
+
+        const uploadObservables = Array.from(images).map((imageFile) =>
+            this.uploadImage(imageFile));
+        //forkJoin espera a que todos emitan un valor si alguno falla salta exception solo recibe array
+        return forkJoin(uploadObservables).pipe(
+            tap((imageNames) => console.log({ imageNames }))
+        );
+    }
+    uploadImage(imageFile: File): Observable<string>{
+        const formData = new FormData();
+        formData.append('file', imageFile);
+
+        return this.http.post<{fileName: string}>(`${baseUrl}/files/product`, formData)
+            .pipe(
+                map( resp => resp.fileName));
+    }
+    deleteImage(imageName: string): Observable<void> {
+      return this.http.delete<void>(`${baseUrl}/files/product/${imageName}`);
+    }
+    deleteProduct(id: string): Observable<void> {
+       if(id === 'new') return of (void 0);
+       
+       return this.getProductById(id).pipe(
+        switchMap((product) => this.deleteProductImages(product.images)),
+        switchMap(() => this.http.delete<void>(`${baseUrl}/products/${id}`)), // borrar producto
+         tap(() => {
+         // limpiar caché individual
+         this.productCache.delete(id);
+
+      // limpiar listas en caché
+        this.productsCache.forEach((productResponse, key) => {
+        const updatedResponse = {
+          ...productResponse,
+          products: productResponse.products.filter(p => p.id !== id)
+        };
+        this.productsCache.set(key, updatedResponse);
+      });
+
+        console.log(`Producto ${id} eliminado correctamente.`);
+        })
+       );
+    }
+       deleteProductImages(images: string[]): Observable<void> {
+         if (!images || images.length === 0) return of (void 0);
+
+         const deleteCalls = images.map(img =>
+         this.http.delete<void>(`${baseUrl}/files/product/${img}`).pipe(
+            catchError(err => {
+                console.warn(`No se pudo eliminar la imagen ${img}: ${err.message}`);
+                return of (void 0);
+            })
+         ));
+
+         return forkJoin(deleteCalls).pipe(map(() => void 0));
+       }
+
+
+
 }

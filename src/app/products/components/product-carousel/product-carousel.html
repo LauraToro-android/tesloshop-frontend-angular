@@ -8,12 +8,22 @@
             <img [src]="image | productImage"
                  alt="Producto"
                  class="max-h-full max-w-full object-contain animate-fadeIn"/>
+            
+            @if (showRemoveButton()) {
+              <button type="button"
+            (click)="onRemoveImage.emit(image)"
+            class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
+            &times;
+            </button>  
+            }
+                
         </div>
      }@empty {
       <div class="swiper-slide flex justify-center items-center h-[90vh]">
             <img [src]="null | productImage"
                  alt="Producto"
                  class="max-h-full max-w-full object-contain animate-fadeIn"/>
+   
         </div>
      }
    

@@ -96,18 +96,35 @@
   </div>
 
   <!-- Imágenes -->
-  <div class="flex flex-col gap-2">
-    <div class="flex justify-end h-12">
-      <button class="btn btn-secondary" type="submit">
-        <!-- <span class="loading loading-spinner loading-sm"></span> -->
-
-        Guardar
-      </button>
+  <div class="flex flex-col col-auto gap-2">
+    
+    <div class="flex justify-end h-12 gap-2">
+        <button class="btn btn-secondary" type="submit">
+            Guardar
+        </button>
+        <button class="btn btn-warning" (click)="onDeleteProduct()">
+            Eliminar Producto
+        </button>
     </div>
 
-    <product-carousel [images]="product().images" />
+      
+    
 
-    <input type="file" class="file-input file-input-bordered w-full mt-4" />
+    <product-carousel [images]="imagesToCarousel()" [showRemoveButton]="true" (onRemoveImage)="onRemoveImage($event)" />
+
+    <input type="file"
+            multiple
+            accept="image/*"
+            class="file-input file-input-bordered w-full mt-4"
+            (change)="onFilesChanged($event)" />
+    
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+        @for (image of tempImages(); track image) {
+            <img [src]="image" alt="Temporal image" class="w-full object-cover rounded-xl" />
+        }
+    </div>
+    
+    
   </div>
 </form>
 
