@@ -10,7 +10,8 @@ export interface Product {
     price:       number;
     description: string;
     slug:        string;
-    stock:       number;
+    //stock:       number;
+    stockEntries: ProductStockEntry[];
     sizes:       Size[];
     gender:      Gender;
     tags:        string[];
@@ -33,5 +34,8 @@ export enum Size {
     Xxl = "XXL",
 }
 
-
+export interface ProductStockEntry {
+    size:     string;
+    quantity: number;
+}
 

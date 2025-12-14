@@ -10,5 +10,13 @@ import { CurrencyPipe } from '@angular/common';
   templateUrl: './product-table.html',
 })
 export class ProductTable { 
-  products = input.required<Product[]>();
+  products = input.required<Product[]>()
+
+  public getTotalStock(product: Product): number {
+      if (!product.stockEntries || product.stockEntries.length === 0) {
+          return 0;
+      }
+      // Sumamos todas las cantidades del array stockEntries
+      return product.stockEntries.reduce((acc, entry) => acc + entry.quantity, 0);
+  }
 }

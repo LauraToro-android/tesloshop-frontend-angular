@@ -1,7 +1,7 @@
 import { HttpClient } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
 import { Gender, Product, ProductsResponse } from "../interfaces/products-response.interface";
-import { catchError, forkJoin, map, Observable, of, switchMap, tap } from "rxjs";
+import { catchError, forkJoin, map, Observable, of, switchMap, tap, throwError } from "rxjs";
 import { environment } from "../../../environments/environment.development";
 
 const baseUrl = environment.baseUrl;
@@ -18,7 +18,8 @@ const emptyProduct: Product = {
     price: 0,
     description: "",
     slug: "",
-    stock: 0,
+    //stock: 0,
+    stockEntries: [],
     sizes: [],
     gender: Gender.Men,
     tags: [],
@@ -99,14 +100,37 @@ export class ProductsService {
     }
     
     createProduct(productLike: Partial<Product>, imageFileList?: FileList): Observable<Product> {
+
+        let newlyUploadedImageNames: string[] = [];
+
         return this.uploadImages(imageFileList).pipe(
-    map((imageNames) => ({
-      ...productLike,
-      images: [...imageNames]  
-    })),
+            tap((imageNames) => newlyUploadedImageNames = imageNames),
+            map((imageNames) => ({
+            ...productLike,
+            images: [...imageNames]  
+            })),
     switchMap((newProduct) =>
       this.http.post<Product>(`${baseUrl}/products`, newProduct)
     ),
+
+    // 🛑 2. MANEJO DE ERRORES: Si la creación falla
+        catchError((error) => {
+            // 3. Si hay un error, limpiar las imágenes huérfanas
+            if (newlyUploadedImageNames.length > 0) {
+                console.warn('Fallo la creación del producto. Limpiando imágenes huérfanas.');
+                
+                // Llamamos a un método auxiliar para borrar las imágenes
+                // El pipe toPromise() convierte el Observable en Promise, 
+                // permitiendo ejecutarlo dentro de catchError (o se puede usar un forEach con subscribe)
+                this.deleteProductImages(newlyUploadedImageNames).subscribe({
+                    next: () => console.log('Imágenes huérfanas eliminadas con éxito.'),
+                    error: (deleteErr) => console.error('Error al limpiar imágenes huérfanas:', deleteErr)
+                });
+            }
+            // 4. Re-lanzar el error original para que el componente lo maneje
+            return throwError(() => error); 
+        }),
+
     tap((product) => this.updateProductCache(product))
   );
     }

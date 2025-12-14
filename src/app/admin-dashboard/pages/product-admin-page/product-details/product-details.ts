@@ -1,5 +1,5 @@
 import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
-import { Product } from '../../../../products/interfaces/products-response.interface';
+import { Product, ProductStockEntry } from '../../../../products/interfaces/products-response.interface';
 import { ProductCarousel } from "../../../../products/components/product-carousel/product-carousel";
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormUtils } from '../../../../utils/form-utils';
@@ -24,6 +24,7 @@ export class ProductDetails implements OnInit {
   wasSaved = signal(false);
   imageFileList: FileList|undefined = undefined;
   tempImages = signal<string[]>([]);
+  productStock = signal<ProductStockEntry[]>([]);
 
   //para poder ver las imagenes seleccionadas para subir, en carousel de imagenes
   imagesToCarousel = computed(() => {
@@ -41,8 +42,8 @@ export class ProductDetails implements OnInit {
     description: ['', Validators.required],
     slug: ['', [Validators.required, Validators.pattern(FormUtils.slugPattern)]],
     price: ['', [Validators.required, Validators.min(0)]],
-    stock: ['', [Validators.required, Validators.min(0)]],
-    sizes: [['']],
+    //stock: ['', [Validators.required, Validators.min(0)]],
+    sizes: this.fb.control<string[]>([], { nonNullable: true}),
     images: [['']],
     tags: [''],
     gender: ['men', [Validators.required, Validators.pattern(/men|women|kid|unisex/)]],
@@ -50,24 +51,86 @@ export class ProductDetails implements OnInit {
 
   sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
-  ngOnInit(): void {
-    this.currentProduct.set(this.product());
-    this.setFormValue(this.product());
+  onStockQuantityChange(event: Event, size: string) {
+    const target = event.target as HTMLInputElement;
+    // Usamos parseInt y 0 como fallback para asegurarnos que es un número
+    const newQuantity = parseInt(target.value) || 0; 
+
+    this.productStock.update(currentStock => {
+        return currentStock.map(entry => {
+            if (entry.size === size) {
+                return { ...entry, quantity: newQuantity };
+            }
+            return entry;
+        });
+    });
   }
+  ngOnInit(): void {
+    const loadedProduct = this.product();
+    this.currentProduct.set(loadedProduct);
+    this.setFormValue(loadedProduct); // Llama al método simplificado
+
+    const existingStock = loadedProduct.stockEntries || [];
+    
+    // 1. Crear un mapa para buscar rápidamente el stock existente por talla.
+    const stockMap = new Map(existingStock.map(entry => [entry.size, entry.quantity]));
+
+    // 2. Crear la lista completa de stock (todas las tallas con cantidad 0 por defecto)
+    // Esto asegura que la tabla de tallas siempre se muestre completa.
+    const initialStock: ProductStockEntry[] = this.sizes.map(size => ({
+        size: size,
+        quantity: stockMap.get(size) || 0 // Si existe en el mapa, usa la cantidad existente
+    }));
+
+    // 3. Inicializar la señal productStock con la lista completa.
+    this.productStock.set(initialStock);
+
+    // 4. Parchear el control 'sizes' (opcional, pero buena práctica si el DTO lo espera)
+    const selectedSizes = loadedProduct.sizes && loadedProduct.sizes.length > 0
+        ? loadedProduct.sizes
+        : initialStock.map(e => e.size); // En modo "nuevo", parcheamos todas las tallas
+        
+    this.productForm.patchValue({ sizes: selectedSizes });
+  }
+  
   setFormValue( formLike: Partial<Product>) {
-    this.productForm.reset(this.product() as any);
+    //this.productForm.reset(this.product() as any);
     //this.productForm.patchValue(formLike as any);
-    this.productForm.patchValue({ tags: formLike.tags?.join(' ,') });
+    const { id, images, stockEntries, sizes, ...valuesToPatch } = formLike;
+
+    // 2. Establecer los valores planos (title, price, slug, gender, sizes)
+    this.productForm.patchValue(valuesToPatch as any);
+    
+    // 3. Formatear y establecer las etiquetas (tags)
+    this.productForm.patchValue({ tags: valuesToPatch.tags?.join(' ,') });
+    
+    //const initialSizes = stockEntries 
+    //    ? stockEntries.map(e => e.size) 
+    //    : this.sizes; // En caso de que se cargue una 'Product' antigua sin stockEntries.
+
+    //if (initialSizes) {
+    //    this.productForm.patchValue({ sizes: initialSizes }); 
+    //}
   }
   onSizeCliked(size: string){
-    const currentSizes = this.productForm.value.sizes ?? [];
+    const currentStock = this.productStock();
+    const index = currentStock.findIndex(entry => entry.size === size);
 
-    if(currentSizes.includes(size)){
-      currentSizes.splice(currentSizes.indexOf(size),1);
+    if(index !== -1){
+        // Si la talla ya existe, la eliminamos
+        currentStock.splice(index, 1);
     }else{
-      currentSizes.push(size);
+        // Si no existe, la añadimos con cantidad inicial 0
+        currentStock.push({ size: size, quantity: 0 });
     }
-    this.productForm.patchValue({sizes: currentSizes});
+    
+    // 1. Actualiza la señal con la nueva lista
+    this.productStock.set([...currentStock]); 
+
+    // 2. Opcional: Actualizar el control 'sizes' para que siga reflejando el estado
+    // Esto es útil si tienes validaciones en el control 'sizes'
+    const selectedSizes = this.productStock().map(entry => entry.size);
+    this.productForm.patchValue({ sizes: selectedSizes });
   }
   async onDeleteProduct() {
     if (!this.currentProduct()?.id || this.currentProduct()?.id === 'new') return;
@@ -111,9 +174,6 @@ export class ProductDetails implements OnInit {
     this.tempImages.set(this.tempImages().filter(img => img !== imageNameOrUrl));
 }
 
-  
-
-
   async onSubmit() {
 
     const isValid = this.productForm.valid;
@@ -122,29 +182,71 @@ export class ProductDetails implements OnInit {
     if(!isValid) return;
 
     const formValue = this.productForm.value;
+    const filesToUpload = this.imageFileList;
+    
+    // 1. Filtrar las entradas de stock (solo las que tienen cantidad > 0)
+    const stockEntries = this.productStock()
+      .filter( entry => entry.quantity > 0 );
+
+    
+    // 2. Desestructuración para EXCLUIR 'sizes' e 'images' del payload
+    // Mantenemos la desestructuración para evitar el campo 'sizes' obsoleto del formValue
+    const { sizes, images, ...restOfFormValue } = formValue; 
+
+    // 3. Construir el objeto productLike
     const productLike: Partial<Product> = {
-      ...(formValue as any),
+      // Usamos restOfFormValue que contiene: title, description, slug, price, tags, gender
+      ...(restOfFormValue as any),
       tags: 
        formValue.tags?.toLowerCase()
         .split(',')
         .map( tag => tag.trim()) ?? [],
-    };
-    if(this.currentProduct()?.id === 'new'){
-      const product = await firstValueFrom(this.productsService.createProduct(productLike, this.imageFileList));
-        console.log('Producto creado');
-        this.router.navigate(['/admin/products', product.id]);
-    }else{
-      const updateProduct = await firstValueFrom(
-        this.productsService.updateProduct(
-          this.currentProduct()!.id, productLike, this.imageFileList)
-        );
-        this.currentProduct.set(updateProduct);
-    }
-    this.wasSaved.set(true);
-    setTimeout(() => {
-      this.wasSaved.set(false);
-    }, 3000);
 
+      // 4. Añadir el array stockEntries (el DTO de NestJS SÍ lo espera)
+      stockEntries: stockEntries,
+      images: this.currentProduct()?.images || [],
+    };
+
+    try {
+    // ... (El resto de la lógica de guardado y manejo de errores se mantiene igual)
+    let savedProduct: Product;
+    
+    if (this.currentProduct()?.id === 'new') {
+      // CREAR NUEVO PRODUCTO
+      savedProduct = await firstValueFrom(
+        this.productsService.createProduct(productLike, filesToUpload) 
+      );
+      this.wasSaved.set(true);
+      alert('🎉 Producto creado exitosamente.');
+      this.router.navigate(['/admin/products/edit', savedProduct.id]);
+      
+    } else {
+      // ACTUALIZAR PRODUCTO EXISTENTE
+      savedProduct = await firstValueFrom(
+        this.productsService.updateProduct(this.currentProduct()!.id!, productLike, filesToUpload) 
+      );
+      this.wasSaved.set(true);
+      alert('✅ Producto actualizado exitosamente.');
+      this.currentProduct.set(savedProduct);
+      this.tempImages.set([]); 
+      this.imageFileList = undefined; 
+    }
+    
+  } catch (error: any) {
+    console.error('Error al guardar/crear producto (400 Bad Request):', error);
+    
+    // Manejo de errores detallado
+    if (error.error && error.error.message) {
+        const errorMessage = Array.isArray(error.error.message) 
+            ? error.error.message.join('\n') 
+            : error.error.message;
+            
+        alert(`Error de Validación (400):\n${errorMessage}`);
+    } else {
+        alert('Ocurrió un error desconocido al comunicarse con el servidor. Consulte la consola.');
+      }
+    }
+    
   }
   //Images
   onFilesChanged(event: Event) {
