@@ -1,0 +1,76 @@
+<!-- Modal -->
+<div class="modal" [class.modal-open]="cartService.isOpen()">
+  <div class="modal-box bg-base-300 text-base-content relative">
+    <div class="flex items-center justify-between mb-4 pb-2 border-b border-base-300">
+  <h3 class="text-lg font-bold tracking-wide text-secondary">
+    Carrito
+  </h3>
+
+  <button
+    class="btn btn-sm btn-circle btn-ghost"
+    (click)="cartService.closeCart()">
+    ✕
+  </button>
+</div>
+
+    
+
+    <!-- Carrito vacío -->
+    <p *ngIf="cartService.items().length === 0" class="text-sm opacity-60 text-center py-6">
+      El carrito está vacío
+    </p>
+
+    <!-- Items -->
+    <div *ngIf="cartService.items().length > 0">
+
+      <div *ngFor="let item of cartService.items(); trackBy: trackByItem" class="flex items-center gap-4 mb-3 p-3 rounded-lg
+            bg-base-100 text-base-content shadow-sm
+            hover:bg-base-200 transition-colors">
+
+        <!-- Imagen -->
+        <div class="w-14 h-14 rounded-md overflow-hidden bg-base-200 shrink-0">
+          <img [src]="item.image | productImage" [alt]="item.title" class="w-full h-full object-cover" />
+        </div>
+
+        <!-- Info producto -->
+        <div class="flex-1 flex flex-col min-w-0">
+          <span class="font-semibold text-sm truncate">
+            {{ item.title }}
+          </span>
+          <span class="text-xs opacity-70">
+            Talla {{ item.size }} · x{{ item.quantity }}
+          </span>
+        </div>
+
+        <!-- Precio + eliminar -->
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-sm whitespace-nowrap">
+            ${{ item.price * item.quantity }}
+          </span>
+
+          <button class="btn btn-ghost btn-xs text-red-400 hover:bg-error/10" (click)="cartService.removeItem(item)"
+            aria-label="Eliminar producto">
+            ✕
+          </button>
+        </div>
+      </div>
+
+
+      <div class="divider my-3"></div>
+
+      <!-- Total -->
+      <div class="flex justify-between items-center text-lg font-bold mb-4">
+        <span>Total</span>
+        <span>$ {{ cartService.total }}</span>
+      </div>
+
+      <!-- Acción -->
+      <div class="modal-action">
+        <button class="btn btn-ghost border border-secondary hover:btn-secondary w-full text-base font-semibold">
+          Ir a pagar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

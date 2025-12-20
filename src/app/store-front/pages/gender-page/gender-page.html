@@ -1,6 +1,6 @@
-<h1 class="text-3xl font-bold font-montserrat">Todos los productos  
+<h1 class="text-3xl font-bold font-montserrat">Todos los productos
     <span class="text-secondary">
-       {{ ggender() ? (ggender().charAt(0).toUpperCase() + ggender().slice(1)) : '' }}
+        {{ ggender() ? (ggender().charAt(0).toUpperCase() + ggender().slice(1)) : '' }}
     </span>
 </h1>
 <h2 class="text-xl mb-5">Para todos los gustos</h2>
@@ -10,11 +10,8 @@
     <div *ngIf="!productsResource.value()?.products?.length">
         No hay productos
     </div>
-    <app-product-card
-    *ngFor="let product of productsResource.value()?.products"
-    [product]="product"/>
+    <app-product-card *ngFor="let product of productsResource.value()?.products" [product]="product" />
 </div>
 
-<app-pagination [pages]="productsResource.value()?.pages ?? 0"
-    [currentPage]="paginationService.currentPage()">
+<app-pagination [pages]="productsResource.value()?.pages ?? 0" [currentPage]="paginationService.currentPage()">
 </app-pagination>

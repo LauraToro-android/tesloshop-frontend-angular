@@ -25,6 +25,8 @@ export class ProductDetails implements OnInit {
   imageFileList: FileList|undefined = undefined;
   tempImages = signal<string[]>([]);
   productStock = signal<ProductStockEntry[]>([]);
+  stockValidationError = signal<string | null>(null);
+  apiError = signal<string | null>(null);
 
   //para poder ver las imagenes seleccionadas para subir, en carousel de imagenes
   imagesToCarousel = computed(() => {
@@ -32,7 +34,13 @@ export class ProductDetails implements OnInit {
   return currentProductImages;
   });
 
+  private selectedSizesMap = computed(() => {
+    return new Map(this.productStock().map(entry => [entry.size, true]));
+  });
 
+  isSizeSelected(size: string): boolean {
+    return this.selectedSizesMap().has(size);
+  }
 
 
   fb = inject(FormBuilder);
@@ -41,7 +49,7 @@ export class ProductDetails implements OnInit {
     title: ['', Validators.required],
     description: ['', Validators.required],
     slug: ['', [Validators.required, Validators.pattern(FormUtils.slugPattern)]],
-    price: ['', [Validators.required, Validators.min(0)]],
+    price: ['', [Validators.required, Validators.min(1)]],
     //stock: ['', [Validators.required, Validators.min(0)]],
     sizes: this.fb.control<string[]>([], { nonNullable: true}),
     images: [['']],
@@ -54,7 +62,11 @@ export class ProductDetails implements OnInit {
   onStockQuantityChange(event: Event, size: string) {
     const target = event.target as HTMLInputElement;
     // Usamos parseInt y 0 como fallback para asegurarnos que es un número
-    const newQuantity = parseInt(target.value) || 0; 
+    const newQuantity = parseInt(target.value) || 0;
+
+    if(newQuantity > 0){
+      this.stockValidationError.set(null);
+    }
 
     this.productStock.update(currentStock => {
         return currentStock.map(entry => {
@@ -94,8 +106,7 @@ export class ProductDetails implements OnInit {
   }
   
   setFormValue( formLike: Partial<Product>) {
-    //this.productForm.reset(this.product() as any);
-    //this.productForm.patchValue(formLike as any);
+    
     const { id, images, stockEntries, sizes, ...valuesToPatch } = formLike;
 
     // 2. Establecer los valores planos (title, price, slug, gender, sizes)
@@ -179,15 +190,19 @@ export class ProductDetails implements OnInit {
     const isValid = this.productForm.valid;
     this.productForm.markAllAsTouched();
 
-    if(!isValid) return;
+    const stockEntries = this.productStock()
+      .filter( entry => entry.quantity > 0 );
+    const isStockValid = stockEntries.length > 0;
+    if(!isStockValid){
+      this.stockValidationError.set('Debe haber almenos 1 unidad de stock de alguna de las tallas para crear el producto.')
+    }else{
+      this.stockValidationError.set(null);
+    }
+
+    if(!isValid || !isStockValid) return;
 
     const formValue = this.productForm.value;
     const filesToUpload = this.imageFileList;
-    
-    // 1. Filtrar las entradas de stock (solo las que tienen cantidad > 0)
-    const stockEntries = this.productStock()
-      .filter( entry => entry.quantity > 0 );
-
     
     // 2. Desestructuración para EXCLUIR 'sizes' e 'images' del payload
     // Mantenemos la desestructuración para evitar el campo 'sizes' obsoleto del formValue
@@ -208,7 +223,10 @@ export class ProductDetails implements OnInit {
     };
 
     try {
-    // ... (El resto de la lógica de guardado y manejo de errores se mantiene igual)
+    
+    //Limpiamos errores anteriores
+    this.apiError.set(null);
+    
     let savedProduct: Product;
     
     if (this.currentProduct()?.id === 'new') {
@@ -217,6 +235,9 @@ export class ProductDetails implements OnInit {
         this.productsService.createProduct(productLike, filesToUpload) 
       );
       this.wasSaved.set(true);
+      setTimeout(() => {
+        this.wasSaved.set(false);
+      }, 3000);
       alert('🎉 Producto creado exitosamente.');
       this.router.navigate(['/admin/products/edit', savedProduct.id]);
       
@@ -226,6 +247,9 @@ export class ProductDetails implements OnInit {
         this.productsService.updateProduct(this.currentProduct()!.id!, productLike, filesToUpload) 
       );
       this.wasSaved.set(true);
+      setTimeout(() => {
+        this.wasSaved.set(false)
+      },3000);
       alert('✅ Producto actualizado exitosamente.');
       this.currentProduct.set(savedProduct);
       this.tempImages.set([]); 
@@ -234,6 +258,8 @@ export class ProductDetails implements OnInit {
     
   } catch (error: any) {
     console.error('Error al guardar/crear producto (400 Bad Request):', error);
+
+    let errorMessage = '';
     
     // Manejo de errores detallado
     if (error.error && error.error.message) {
@@ -241,10 +267,17 @@ export class ProductDetails implements OnInit {
             ? error.error.message.join('\n') 
             : error.error.message;
             
-        alert(`Error de Validación (400):\n${errorMessage}`);
-    } else {
-        alert('Ocurrió un error desconocido al comunicarse con el servidor. Consulte la consola.');
-      }
+        this.apiError.set(errorMessage);
+    }else{
+      errorMessage = 'Error en el formulario para crear/actualizar producto. Consulte la consola.';
+      this.apiError.set(errorMessage);
+    }
+    alert(`Fallo en la operación:\n${errorMessage}`); 
+
+        // 🔴 FALLO: Programa el auto-apagado del toast de error
+    setTimeout(() => {
+     this.apiError.set(null);
+    }, 5000);
     }
     
   }

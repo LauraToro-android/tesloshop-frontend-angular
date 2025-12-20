@@ -1,7 +1,7 @@
 import { HttpClient } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
 import { Gender, Product, ProductsResponse } from "../interfaces/products-response.interface";
-import { catchError, forkJoin, map, Observable, of, switchMap, tap, throwError } from "rxjs";
+import { catchError, forkJoin, map, Observable, of, Subject, switchMap, tap, throwError } from "rxjs";
 import { environment } from "../../../environments/environment.development";
 
 const baseUrl = environment.baseUrl;
@@ -15,7 +15,7 @@ interface Options {
 const emptyProduct: Product = {
     id: "new",
     title: "",
-    price: 0,
+    price: null as any,
     description: "",
     slug: "",
     //stock: 0,
@@ -33,6 +33,9 @@ export class ProductsService {
 
     private productsCache = new Map<string, ProductsResponse>();
     private productCache = new Map<string, Product>();
+
+    private productOperationSubject = new Subject<void>();
+    public productOperation$ = this.productOperationSubject.asObservable();
 
     getProducts(options: Options): Observable<ProductsResponse> {
 
@@ -92,8 +95,13 @@ export class ProductsService {
         switchMap((updateProduct) => 
             this.http.patch<Product>(`${baseUrl}/products/${id}`,updateProduct)
         ),
-        tap((product) => this.updateProductCache(product))
-      );
+        tap((product) => {
+            this.updateProductCache(product);
+            this.notifyOperationComplete();
+        
+        })
+        );
+        
     
         //return this.http.patch<Product>(`${baseUrl}/products/${id}`, productLike)
         //.pipe(tap((product) => this.updateProductCache(product)));
@@ -109,9 +117,9 @@ export class ProductsService {
             ...productLike,
             images: [...imageNames]  
             })),
-    switchMap((newProduct) =>
-      this.http.post<Product>(`${baseUrl}/products`, newProduct)
-    ),
+        switchMap((newProduct) =>
+            this.http.post<Product>(`${baseUrl}/products`, newProduct)
+        ),
 
     // 🛑 2. MANEJO DE ERRORES: Si la creación falla
         catchError((error) => {
@@ -131,8 +139,11 @@ export class ProductsService {
             return throwError(() => error); 
         }),
 
-    tap((product) => this.updateProductCache(product))
-  );
+        tap((product) => {
+            this.updateProductCache(product);
+            this.notifyOperationComplete();
+        })
+        );
     }
 
     updateProductCache(product: Product){
@@ -189,7 +200,7 @@ export class ProductsService {
         };
         this.productsCache.set(key, updatedResponse);
       });
-
+        this.notifyOperationComplete();
         console.log(`Producto ${id} eliminado correctamente.`);
         })
        );
@@ -207,7 +218,13 @@ export class ProductsService {
 
          return forkJoin(deleteCalls).pipe(map(() => void 0));
        }
-
-
+       // Función que notifica un cambio
+       private notifyOperationComplete() {
+           // 1. Limpiamos el caché de listas para forzar la recarga
+           this.productsCache.clear();
+        
+           // 2. 🚀 NOTIFICAMOS que el cambio ocurrió con éxito
+           this.productOperationSubject.next();
+        }
 
 }

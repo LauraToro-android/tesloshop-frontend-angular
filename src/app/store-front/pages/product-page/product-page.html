@@ -1,24 +1,83 @@
 @if ( productResource.isLoading() ) {
-    <div class="flex justify-center items-center h-screen">
-        <span class="loading loading-spinner loading-lg"></span>
-    </div>
+<div class="flex justify-center items-center h-screen">
+    <span class="loading loading-spinner loading-lg"></span>
+</div>
 }
 @if ( productResource.hasValue() ) {
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start min-h-screen">
-        <div class="flex justify-center items-center p-4">
-            <product-carousel class="max-w-full max-h-[90vh] object-contain" 
-            [images]="productResource.value().images" />
-        </div>
-        
-        <div>
-            <h2 class="text-2xl font-bold font-montserrat mb-3 text-accent">
-                {{ productResource.value().title }}
-            </h2>
-            <div class="divider"></div>
-            <p>
-                {{ productResource.value().description }}
-            </p>
-        </div>
-    </div>
-}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start min-h-screen p-4 sm:p-8">
 
+    <div class="flex justify-center items-center">
+        <product-carousel class="max-w-full max-h-[90vh] object-contain" [images]="productResource.value().images" />
+    </div>
+
+    <div>
+        <h2 class="text-3xl font-bold font-montserrat mb-2 text-accent">
+            {{ productResource.value().title }}
+        </h2>
+
+        <p class="text-4xl font-bold mb-4">
+            $ {{ productResource.value().price | number:'1.2-2' }}
+        </p>
+
+        <div class="divider my-2"></div>
+
+        <p class="text-lg mb-4">
+            <span class="font-semibold text-gray-500">Género:</span>
+            <span class="font-montserrat"> {{ productResource.value().gender }}</span>
+        </p>
+
+        <h3 class="text-xl font-semibold mt-6 mb-3 text-secondary">Descripción</h3>
+        <p class="mb-6 leading-relaxed">
+            {{ productResource.value().description }}
+        </p>
+
+        <div class="divider my-2"></div>
+
+        <h3 class="text-xl font-semibold mt-6 mb-3 text-secondary">Tallas Disponibles</h3>
+        <div class="flex flex-wrap gap-2 mb-6">
+
+            @let entries = normalizedEntries;
+
+            @if (productResourceId.isLoading()) {
+            <span class="loading loading-dots loading-md text-primary"></span>
+            }
+
+            @if (entries && entries.length > 0) {
+            @for (entry of entries; track entry.size) {
+            <button (click)="entry.quantity > 0 && selectSize(entry.size)" type="button"
+                class="badge badge-lg font-bold border-2 transition-all h-12 min-w-[3.5rem]" [ngClass]="{
+                     'badge-accent scale-110 shadow-lg': entry.quantity > 0 && selectedSize() === entry.size,
+                     'bg-secondary border-accent text-black cursor-pointer hover:bg-accent': entry.quantity > 0 && selectedSize() !== entry.size,
+                     'bg-ghost border-dashed border-gray-300 text-gray-400 opacity-30 cursor-not-allowed': entry.quantity === 0 || !entry.quantity
+                  }">
+                {{ entry.size }}
+            </button>
+            }
+            }
+
+            @else if (!productResource.isLoading() && !productResourceId.isLoading()) {
+            <p class="text-sm text-gray-500 italic">No hay tallas disponibles.</p>
+            }
+        </div>
+        <div class="divider my-2"></div>
+
+        <h3 class="text-xl font-semibold mt-6 mb-3 text-secondary">Etiquetas</h3>
+        <div class="flex flex-wrap gap-2">
+            @for (tag of productResource.value().tags; track tag) {
+            <span class="badge badge-outline">
+                #{{ tag }}
+            </span>
+            }
+            <div class="btn btn-ghost btn-lg w-full mt-4">
+                <button
+                    class="btn btn-ghost border-gray-300 hover:bg-secondary hover:text-black hover:border-secondary btn-lg w-full"
+                    (click)="addToCart()" [disabled]="!hasSelectedSize">
+                    Añadir al Carrito
+                </button>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+}

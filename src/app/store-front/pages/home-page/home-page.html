@@ -5,9 +5,7 @@
     <div *ngIf="!productsResource.value()?.products?.length">
         No hay productos
     </div>
-    <app-product-card
-    *ngFor="let product of productsResource.value()?.products"
-    [product]="product"/>
+    <app-product-card *ngFor="let product of productsResource.value()?.products" [product]="product" />
 </div>
 <app-pagination [pages]="productsResource.value()?.pages ?? 0"
-  [currentPage]="paginationService.currentPage()"></app-pagination>
+    [currentPage]="paginationService.currentPage()"></app-pagination>

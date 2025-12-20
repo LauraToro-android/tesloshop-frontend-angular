@@ -78,7 +78,6 @@
     @if (productStock().length === 0) {
         <p class="text-warning">Selecciona una talla arriba para definir su inventario.</p>
     }
-
     <div class="grid grid-cols-2 gap-2">
         @for (entry of productStock(); track entry.size) {
             <div class="flex items-center gap-2">
@@ -91,10 +90,14 @@
                     [value]="entry.quantity"
                     (input)="onStockQuantityChange($event, entry.size)"
                     min="0"
+                    [class.border-red-500]="stockValidationError()"
                 />
             </div>
         }
     </div>
+    @if (stockValidationError()) {
+      <p class="text-red-500 text-sm mt-1">{{stockValidationError()}}</p>
+    }
   </div>
 
   <!-- Imágenes -->
@@ -134,6 +137,10 @@
     <div class="alert alert-success fixed bottom-4 right-4 w-80 animate-fadeIn">
     <span>Datos actualizados correctamente</span>
 </div>
-
+}
+@if (apiError()) {
+  <div class="alert alert-error fixed bottom-4 right-4 w-80 animate-fadeIn z-50">
+        <span>{{ apiError() }}</span>
+  </div>
 }
 
